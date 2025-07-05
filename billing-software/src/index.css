@@ -1,0 +1,10 @@
+@font-face {
+  font-family: "Outfit";
+  src: local("Outfit"),url(/src/fonts/Outfit-VariableFont_wght.ttf) format('opentype')
+}
+*{
+  box-sizing: border-box;
+  margin:0;
+  padding:0;
+  font-family: 'Outfit' !important;
+}

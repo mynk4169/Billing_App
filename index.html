@@ -1,0 +1,356 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BillingApp Documentation</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        body {
+            transition: background-color 0.3s, color 0.3s;
+        }
+        .dark {
+            background-color: #1a202c;
+            color: #e2e8f0;
+        }
+        .table-auto th, .table-auto td {
+            border: 1px solid #e2e8f0;
+        }
+        .dark .table-auto th, .dark .table-auto td {
+            border-color: #4a5568;
+        }
+    </style>
+</head>
+<body class="font-sans bg-gray-100 text-gray-800">
+    <!-- Navigation Bar -->
+    <nav class="bg-blue-600 text-white p-4 sticky top-0 z-10">
+        <div class="container mx-auto flex justify-between items-center">
+            <h1 class="text-2xl font-bold">BillingApp Docs 💸</h1>
+            <div class="space-x-4">
+                <a href="#overview" class="hover:underline">Overview</a>
+                <a href="#tech-stack" class="hover:underline">Tech Stack</a>
+                <a href="#entities" class="hover:underline">Entities</a>
+                <a href="#api" class="hover:underline">API Endpoints</a>
+                <a href="#usage" class="hover:underline">Usage</a>
+                <a href="#setup" class="hover:underline">Setup</a>
+                <a href="#deployment" class="hover:underline">Deployment</a>
+                <button id="theme-toggle" onClick= class="focus:outline-none">
+                    <i class="fas fa-moon"></i>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="container mx-auto p-6">
+        <!-- Overview -->
+        <section id="overview" class="mb-12">
+            <h2 class="text-3xl font-bold mb-4">Overview</h2>
+            <p class="text-lg">
+                BillingApp is a web application for managing billing and orders, tailored for small businesses or e-commerce. Built with Spring Boot and React, it features role-based access: admins manage categories, items, and users, while regular users can explore items, create orders, view their dashboard, and process payments via Razorpay. Protected endpoints ensure secure access to administrative functions.
+            </p>
+            <div class="mt-4">
+                <span class="inline-block bg-blue-100 text-blue-800 text-sm font-semibold mr-2 px-2.5 py-0.5 rounded">Version 1.0</span>
+                <a href="https://github.com/GURUPRASATH-OG/BillingApp" class="text-blue-600 hover:underline"><i class="fab fa-github"></i> GitHub Repository</a>
+            </div>
+        </section>
+
+        <!-- Tech Stack -->
+        <section id="tech-stack" class="mb-12">
+            <h2 class="text-3xl font-bold mb-4">Tech Stack</h2>
+            <ul class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <li><i class="fas fa-code text-blue-600"></i> <strong>Frontend:</strong> React, BootStrap CSS</li>
+                <li><i class="fas fa-server text-blue-600"></i> <strong>Backend:</strong> Spring Boot, Java, Lombok</li>
+                <li><i class="fas fa-database text-blue-600"></i> <strong>Database:</strong> MySQL</li>
+                <li><i class="fas fa-credit-card text-blue-600"></i> <strong>Payment Gateway:</strong> Razorpay</li>
+                <li><i class="fas fa-tools text-blue-600"></i> <strong>Tools:</strong> Maven, Git, Postman</li>
+            </ul>
+        </section>
+
+        <!-- Entities -->
+        <section id="entities" class="mb-12">
+            <h2 class="text-3xl font-bold mb-4">Entities</h2>
+            <p class="mb-4">Note: Categories and Items are managed by admins and not directly accessible to users via API.</p>
+            <div class="space-y-6">
+                <div>
+                    <h3 class="text-xl font-semibold"><i class="fas fa-tags"></i> Category</h3>
+                    <ul class="list-disc pl-6">
+                        <li><code>id</code>: Unique identifier (Long)</li>
+                        <li><code>name</code>: Category name (String)</li>
+                    </ul>
+                    <p>Relationships: One-to-Many with <code>Items</code>.</p>
+                </div>
+                <div>
+                    <h3 class="text-xl font-semibold"><i class="fas fa-box"></i> Item</h3>
+                    <ul class="list-disc pl-6">
+                        <li><code>id</code>: Unique identifier (Long)</li>
+                        <li><code>name</code>: Item name (String)</li>
+                        <li><code>price</code>: Item price (Double)</li>
+                        <li><code>categoryId</code>: Reference to Category (Long)</li>
+                    </ul>
+                    <p>Relationships: Many-to-One with <code>Category</code>.</p>
+                </div>
+                <div>
+                    <h3 class="text-xl font-semibold"><i class="fas fa-shopping-cart"></i> Order</h3>
+                    <ul class="list-disc pl-6">
+                        <li><code>id</code>: Unique identifier (Long)</li>
+                        <li><code>userId</code>: Reference to User (Long)</li>
+                        <li><code>total</code>: Total amount (Double)</li>
+                        <li><code>createdAt</code>: Order creation date (LocalDateTime)</li>
+                        <li><code>status</code>: Order status (String/Enum)</li>
+                    </ul>
+                    <p>Relationships: One-to-Many with <code>OrderItem</code> (managed relation).</p>
+                </div>
+                <div>
+                    <h3 class="text-xl font-semibold"><i class="fas fa-list"></i> OrderItem</h3>
+                    <ul class="list-disc pl-6">
+                        <li><code>id</code>: Unique identifier (Long)</li>
+                        <li><code>orderId</code>: Reference to Order (Long)</li>
+                        <li><code>itemId</code>: Reference to Item (Long)</li>
+                        <li><code>quantity</code>: Item quantity (Integer)</li>
+                    </ul>
+                    <p>Relationships: Many-to-One with <code>Order</code>.</p>
+                </div>
+                <div>
+                    <h3 class="text-xl font-semibold"><i class="fas fa-user"></i> User</h3>
+                    <ul class="list-disc pl-6">
+                        <li><code>id</code>: Unique identifier (Long)</li>
+                        <li><code>username</code>: Username (String)</li>
+                        <li><code>password</code>: Password (String, hashed)</li>
+                        <li><code>email</code>: Email address (String)</li>
+                        <li><code>role</code>: User role (String/Enum, e.g., ADMIN, USER)</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- API Endpoints -->
+        <section id="api" class="mb-12">
+            <h2 class="text-3xl font-bold mb-4">API Endpoints</h2>
+            <p class="mb-4">Base URL: <code>/api/v1.0</code></p>
+            <table class="table-auto w-full text-left border-collapse">
+                <thead>
+                    <tr class="bg-blue-600 text-white">
+                        <th class="p-2">Method</th>
+                        <th class="p-2">Endpoint</th>
+                        <th class="p-2">Description</th>
+                        <th class="p-2">Access</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td class="p-2">POST</td>
+                        <td class="p-2"><code>/login</code></td>
+                        <td class="p-2">Authenticate a user</td>
+                        <td class="p-2">All users</td>
+                    </tr>
+                    <tr>
+                        <td class="p-2">GET</td>
+                        <td class="p-2"><code>/admin/categories</code></td>
+                        <td class="p-2">Retrieve all categories</td>
+                        <td class="p-2">Admin only</td>
+                    </tr>
+                    <tr>
+                        <td class="p-2">GET</td>
+                        <td class="p-2"><code>/admin/categories/{category_id}</code></td>
+                        <td class="p-2">Get category by ID</td>
+                        <td class="p-2">Admin only</td>
+                    </tr>
+                    <tr>
+                        <td class="p-2">DELETE</td>
+                        <td class="p-2"><code>/admin/categories/{category_id}</code></td>
+                        <td class="p-2">Delete category by ID</td>
+                        <td class="p-2">Admin only</td>
+                    </tr>
+                    <tr>
+                        <td class="p-2">GET</td>
+                        <td class="p-2"><code>/admin/items</code></td>
+                        <td class="p-2">Retrieve all items</td>
+                        <td class="p-2">Admin only</td>
+                    </tr>
+                    <tr>
+                        <td class="p-2">DELETE</td>
+                        <td class="p-2"><code>/admin/items/{itemId}</code></td>
+                        <td class="p-2">Delete item by ID</td>
+                        <td class="p-2">Admin only</td>
+                    </tr>
+                    <tr>
+                        <td class="p-2">POST</td>
+                        <td class="p-2"><code>/orders</code></td>
+                        <td class="p-2">Create a new order</td>
+                        <td class="p-2">Authenticated users</td>
+                    </tr>
+                    <tr>
+                        <td class="p-2">GET</td>
+                        <td class="p-2"><code>/orders/{orderId}</code></td>
+                        <td class="p-2">Get order by ID</td>
+                        <td class="p-2">Authenticated users</td>
+                    </tr>
+                    <tr>
+                        <td class="p-2">GET</td>
+                        <td class="p-2"><code>/orders/latest</code></td>
+                        <td class="p-2">Get the latest order</td>
+                        <td class="p-2">Authenticated users</td>
+                    </tr>
+                    <tr>
+                        <td class="p-2">POST</td>
+                        <td class="p-2"><code>/payments/create-order</code></td>
+                        <td class="p-2">Create a Razorpay payment order</td>
+                        <td class="p-2">Authenticated users</td>
+                    </tr>
+                    <tr>
+                        <td class="p-2">POST</td>
+                        <td class="p-2"><code>/payments/verify</code></td>
+                        <td class="p-2">Verify a Razorpay payment</td>
+                        <td class="p-2">Authenticated users</td>
+                    </tr>
+                    <tr>
+                        <td class="p-2">POST</td>
+                        <td class="p-2"><code>/admin/register</code></td>
+                        <td class="p-2">Register a new user</td>
+                        <td class="p-2">Admin only</td>
+                    </tr>
+                    <tr>
+                        <td class="p-2">DELETE</td>
+                        <td class="p-2"><code>/admin/users/{id}</code></td>
+                        <td class="p-2">Delete a user by ID</td>
+                        <td class="p-2">Admin only</td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+
+        <!-- Usage -->
+        <section id="usage" class="mb-12">
+            <h2 class="text-3xl font-bold mb-4">Usage</h2>
+            <h3 class="text-xl font-semibold mb-2">For Admins</h3>
+            <ul class="list-disc pl-6 mb-4">
+                <li><strong>Manage Categories</strong>: Add or delete categories via the admin panel (uses <code>/admin/categories</code> endpoints).</li>
+                <li><strong>Manage Items</strong>: Add or delete items under categories (uses <code>/admin/items</code> endpoints).</li>
+                <li><strong>Create Users</strong>: Register new users (uses <code>/admin/register</code>).</li>
+                <li><strong>Delete Users</strong>: Remove users as needed (uses <code>/admin/users/{id}</code>).</li>
+            </ul>
+            <h3 class="text-xl font-semibold mb-2">For Users</h3>
+            <ul class="list-disc pl-6">
+                <li><strong>Login</strong>: Authenticate using <code>/login</code> to access the application.</li>
+                <li><strong>Explore Page</strong>: View available items and categories (fetched indirectly via the frontend; direct API access to <code>/admin/categories</code> and <code>/admin/items</code> is restricted).</li>
+                <li><strong>Create Order</strong>: Place an order with selected items (uses <code>/orders</code>).</li>
+                <li><strong>Process Payment</strong>: Pay for the order via Razorpay (uses <code>/payments/create-order</code> and <code>/payments/verify</code>).</li>
+                <li><strong>View Dashboard</strong>: See order summaries and stats on the dashboard (frontend feature).</li>
+                <li><strong>View Order Details</strong>: Check order history and details (uses <code>/orders/{orderId}</code> and <code>/orders/latest</code>).</li>
+            </ul>
+        </section>
+
+        <!-- Setup -->
+        <section id="setup" class="mb-12">
+            <h2 class="text-3xl font-bold mb-4">Setup</h2>
+            <ol class="list-decimal pl-6 space-y-4">
+                <li><strong>Prerequisites</strong>: Install Java 17+, Node.js 18+, MySQL 8.0+, and Maven.</li>
+                <li><strong>Clone the Repository</strong>:
+                    <pre class="bg-gray-800 text-white p-4 rounded"><code>git clone https://github.com/GURUPRASATH-OG/BillingApp.git
+cd BillingApp</code></pre>
+                </li>
+                <li><strong>Backend Setup</strong>:
+                    <ul class="list-disc pl-6">
+                        <li>Navigate to <code>backend</code>: <code>cd backend</code></li>
+                        <li>Create a MySQL database named <code>billingapp</code>.</li>
+                        <li>Update <code>src/main/resources/application.properties</code> with MySQL and Razorpay credentials:
+                            <pre class="bg-gray-800 text-white p-4 rounded"><code>spring.datasource.url=jdbc:mysql://localhost:3306/billingapp
+spring.datasource.username=your_username
+spring.datasource.password=your_password
+spring.jpa.hibernate.ddl-auto=update
+razorpay.api.key=your_razorpay_key
+razorpay.api.secret=your_razorpay_secret</code></pre>
+                        </li>
+                        <li>Build and run:
+                            <pre class="bg-gray-800 text-white p-4 rounded"><code>mvn clean install
+mvn spring-boot:run</code></pre>
+                        </li>
+                    </ul>
+                </li>
+                <li><strong>Frontend Setup</strong>:
+                    <ul class="list-disc pl-6">
+                        <li>Navigate to <code>frontend</code>: <code>cd frontend</code></li>
+                        <li>Install dependencies and start:
+                            <pre class="bg-gray-800 text-white p-4 rounded"><code>npm install
+npm start</code></pre>
+                        </li>
+                    </ul>
+                </li>
+                <li><strong>Access</strong>:
+                    <ul class="list-disc pl-6">
+                        <li>Backend API: <code>http://localhost:8080/api/v1.0</code></li>
+                        <li>Frontend: <code>http://localhost:3000</code></li>
+                    </ul>
+                </li>
+            </ol>
+        </section>
+
+        <!-- Deployment -->
+  
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-blue-600 text-white p-4 text-center">
+        <p>© 2025 BillingApp by <a href="https://github.com/GURUPRASATH-OG" class="underline">GURUPRASATH-OG</a>. Licensed under MIT.</p>
+    </footer>
+
+    <!-- Theme Toggle Script -->
+    <script>
+        const themeToggle = document.getElementById('theme-toggle');
+        const body = document.body;
+        themeToggle.addEventListener('click', () => {
+            body.classList.toggle('dark');
+            const isDark = body.classList.contains('dark');
+            themeToggle.innerHTML = isDark ? '<i class="fas fa-sun"></i>' : '<i class="fas fa-moon"></i>';
+            localStorage.setItem('theme', isDark ? 'dark' : 'light');
+        });
+        // Load saved theme
+        if (localStorage.getItem('theme') === 'dark') {
+            body.classList.add('dark');
+            themeToggle.innerHTML = '<i class="fas fa-sun"></i>';
+        }
+           
+    </script>
+</body>
+</html>

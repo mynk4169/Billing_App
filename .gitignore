@@ -1,0 +1,9 @@
+#Ignore Maven Build Output
+target/
+*.class
+#Ignore Node.js Build output
+node_modules/
+frontend/build/
+#Ignore Ide files
+.idea/
+*.iml

@@ -1,0 +1,15 @@
+# Add to existing .gitattributes
+primary-language.java linguist-language=Java
+primary-language.java linguist-primary=true
+
+# Ignore the HTML documentation page for language stats
+docs/index.html linguist-detectable=false
+
+# Ignore React's public/index.html for language stats
+frontend/public/index.html linguist-detectable=false
+
+# Ensure Java files are correctly classified
+*.java linguist-language=Java
+
+# Ensure JSX files are classified as JavaScript
+*.jsx linguist-language=JavaScript
